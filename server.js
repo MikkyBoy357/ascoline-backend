@@ -15,9 +15,11 @@ app.use(cors({
 // Routes
 const clientsRoutes = require('./routes/clients');
 const commandesRoutes = require('./routes/commandes');
+const pricingsRoutes = require('./routes/pricings');
 
 app.use('/clients', clientsRoutes);
 app.use('/commandes', commandesRoutes);
+app.use('/pricings', pricingsRoutes);
 
 app.get('/', (req, res) => {
     res.send('Hello NODE API');

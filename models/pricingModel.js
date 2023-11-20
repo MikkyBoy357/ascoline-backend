@@ -1,20 +1,20 @@
 const mongoose = require('mongoose');
 
-const commandeSchema = new mongoose.Schema(
+const pricingSchema = new mongoose.Schema(
     {
-        client: {
-            type: String,
-            required: true
-        },
-        pays: {
-            type: String,
-            required: true
-        },
-        villes: {
-            type: String,
+        price: {
+            type: Number,
             required: true
         },
         typeColis: {
+            type: String,
+            required: true
+        },
+        transportType: {
+            type: String,
+            required: true
+        },
+        unit: {
             type: String,
             required: true
         },
@@ -22,28 +22,19 @@ const commandeSchema = new mongoose.Schema(
             type: String,
             required: true
         },
-        trackingId: {
-            type: String,
-            required: true
-        },
-        poids: {
+        quantity: {
             type: Number,
-            required: true
-        },
-        transportType: {
-            type: String,
             required: true
         },
         status: {
             type: String,
             required: true
-        }
-    },
-    {
-        timestamps: true
-    }
+        },
+    }, {
+    timestamps: true
+}
 );
 
-const Commande = mongoose.model('Commande', commandeSchema);
+const Pricing = mongoose.model('Pricing', pricingSchema);
 
-module.exports = Commande;
+module.exports = Pricing;
