@@ -30,9 +30,10 @@ const pricingSchema = new mongoose.Schema(
             type: String,
             required: true
         },
-    }, {
-    timestamps: true
-}
+    },
+    {
+        timestamps: true
+    }
 );
 
 const Pricing = mongoose.model('Pricing', pricingSchema);

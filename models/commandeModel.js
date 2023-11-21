@@ -10,7 +10,7 @@ const commandeSchema = new mongoose.Schema(
             type: String,
             required: true
         },
-        villes: {
+        ville: {
             type: String,
             required: true
         },

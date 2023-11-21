@@ -10,16 +10,20 @@ app.use(express.urlencoded({ extended: false }));
 // Allow requests from http://localhost:3001 (your frontend origin)
 app.use(cors({
     origin: 'http://localhost:3001'
-  }));  
+}));
 
 // Routes
+const authRoutes = require('./routes/auth');
 const clientsRoutes = require('./routes/clients');
 const commandesRoutes = require('./routes/commandes');
 const pricingsRoutes = require('./routes/pricings');
+const employeesRoutes = require('./routes/employees');
 
+app.use('/auth', authRoutes);
 app.use('/clients', clientsRoutes);
 app.use('/commandes', commandesRoutes);
 app.use('/pricings', pricingsRoutes);
+app.use('/employees', employeesRoutes);
 
 app.get('/', (req, res) => {
     res.send('Hello NODE API');

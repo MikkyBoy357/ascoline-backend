@@ -16,6 +16,11 @@ router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const client = await Client.findById(id);
+
+    if (!client) {
+      return res.status(404).json({ message: `Client with ID ${id} not found` });
+    }
+
     res.status(200).json(client);
   } catch (error) {
     console.log(error.message);
