@@ -76,7 +76,7 @@ router.post('/login', async (req, res) => {
                 if (err) {
                     // If there's an error during password comparison, return a 401 Unauthorized status code
                     return res.status(401).json({
-                        message: "Incorrect email or password"
+                        message: "Auth failed"
                     });
                 }
                 if (result) {
@@ -84,7 +84,8 @@ router.post('/login', async (req, res) => {
                     const token = jwt.sign(
                         {
                             email: user[0].email,
-                            userId: user[0]._id
+                            userId: user[0]._id,
+                            type: user[0].type
                         },
                         process.env.JWT_KEY, // Use environment variable for the secret key
                         {
@@ -99,7 +100,7 @@ router.post('/login', async (req, res) => {
                 }
                 // If the password doesn't match, return a 401 Unauthorized status code
                 res.status(401).json({
-                    message: "Auth failed"
+                    message: "Incorrect email or password"
                 });
             });
         })
