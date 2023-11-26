@@ -9,6 +9,8 @@ const jwt = require("jsonwebtoken");
 require('dotenv').config();
 
 const User = require("../models/userModel");
+const Client = require("../models/clientModel");
+const Employee = require("../models/employeeModel");
 
 router.post('/signup', async (req, res) => {
     // Check if the email already exists in the database
@@ -33,18 +35,51 @@ router.post('/signup', async (req, res) => {
                         const user = new User({
                             _id: new mongoose.Types.ObjectId(),
                             phone: req.body.phone,
-                            type: req.body.type === 'admin' ? 'admin' : 'regular',
+                            type: req.body.type,
                             email: req.body.email,
-                            password: hash
+                            lastName: req.body.lastName,
+                            firstName: req.body.firstName,
+                            address: req.body.address,
+                            password: hash,
                         });
                         // Save the new user in the database
                         user
                             .save()
-                            .then(result => {
+                            .then(async result => {
                                 // If the user is successfully created, return a 201 Created status code
                                 console.log(result);
+
+                                // Check the user type and create a Client or Employee accordingly
+                                if (req.body.type === 'client') {
+                                    const newClient = new Client({
+                                        _id: user._id,
+                                        email: user.email,
+                                        phone: user.phone,
+                                        lastName: req.body.lastName,
+                                        firstName: req.body.firstName,
+                                        address: req.body.address,
+                                        password: hash,
+                                        status: req.body.status
+                                    });
+
+                                    await newClient.save();
+                                } else if (req.body.type === 'employee') {
+                                    const newEmployee = new Employee({
+                                        _id: user._id,
+                                        email: user.email,
+                                        phone: user.phone,
+                                        lastName: req.body.lastName,
+                                        firstName: req.body.firstName,
+                                        address: req.body.address,
+                                        password: hash,
+                                        status: req.body.status
+                                    });
+
+                                    await newEmployee.save();
+                                }
+
                                 res.status(201).json({
-                                    message: `${req.body.type === 'admin' ? 'Admin' : 'Regular'} User created`
+                                    message: `${req.body.type} User created`
                                 });
                             })
                             .catch(err => {

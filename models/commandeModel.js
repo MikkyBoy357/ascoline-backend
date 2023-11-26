@@ -26,8 +26,8 @@ const commandeSchema = new mongoose.Schema(
             type: String,
             required: true
         },
-        poids: {
-            type: Number,
+        unit: {
+            type: String,
             required: true
         },
         transportType: {

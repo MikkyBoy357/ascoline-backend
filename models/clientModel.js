@@ -2,6 +2,7 @@ const mongoose = require('mongoose')
 
 const clientSchema = mongoose.Schema(
     {
+        _id: mongoose.Schema.Types.ObjectId,
         firstName: {
             type: String,
             required: [true, "Please enter client first name"]
@@ -18,9 +19,13 @@ const clientSchema = mongoose.Schema(
             type: String,
             required: [true, "Please enter client phone number"]
         },
+        address: {
+            type: String,
+        },
+        password: { type: String, required: true },
         status: {
             type: String,
-            required: false
+            required: true
         },
     },
     {
