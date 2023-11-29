@@ -2,10 +2,13 @@ const https = require('https');
 
 // Function to send SMS using FasterMessage API
 const sendSMS = (to, message) => {
-    const postData = JSON.stringify({
-        'from': 'FASTERMSG',
-        'to': to,
-        'text': message
+    
+    console.log(`To => ${to}`)
+    console.log(`Message => ${message}`)
+    var postData = JSON.stringify({
+        "from": 'FASTER', // Example 'from' field (less than 11 characters)
+        "to": to, // The 'to' field (phone number) you want to send the SMS to
+        "text": message // The SMS message content
     });
 
     const basicAuth = Buffer.from('mikkyboy:mikkyboy').toString('base64');

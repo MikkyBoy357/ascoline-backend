@@ -45,11 +45,17 @@ router.post('/', async (req, res) => {
     // handle sendSMS
     {
       // Get the phone number from the updatedCommande or pass it as part of the request body
-      const phoneNumber = clientInfo.phone; // Replace with your field name
+      const phoneNumber = `229${clientInfo.phone.toString()}`; // Replace with your field name
       console.log(`Client Phone => ${phoneNumber}`)
 
+
+
+      const myMessage = `Votre commande du tracking id: ${newCommande.trackingId.toString()} est enregistrée. Le statut de votre commande est: ${newCommande.status.toString()}`;
+      
+      console.log(phoneNumber)
+      console.log(myMessage)
       // Call the function to send SMS
-      // sendSMS(phoneNumber, 'Hello World'); // Customize your SMS message
+      sendSMS(phoneNumber, myMessage); // Customize your SMS message
     }
 
     res.status(201).json(newCommande);
