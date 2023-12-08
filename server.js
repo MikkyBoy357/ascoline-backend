@@ -10,7 +10,7 @@ server.use(express.urlencoded({ extended: false }));
 
 // Allow requests from http://localhost:3001 (your frontend origin)
 server.use(cors({
-    origin: 'http://localhost:3001'
+    origin: '*'
 }));
 
 server.use(app);
