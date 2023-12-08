@@ -128,9 +128,13 @@ router.post('/login', async (req, res) => {
                         }
                     );
                     // Return a 200 OK status code with the token for successful authentication
+                    delete user[0].password;
+
                     return res.status(200).json({
                         message: "Auth successful",
-                        token: token
+                        token: token,
+                        userId: user[0]._id,
+                        user: user[0]
                     });
                 }
                 // If the password doesn't match, return a 401 Unauthorized status code
