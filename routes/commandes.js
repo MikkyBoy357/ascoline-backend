@@ -3,7 +3,7 @@ const router = express.Router();
 const Commande = require('../models/commandeModel');
 const Client = require('../models/clientModel');
 
-const { sendSMS } = require('../helpers/fasterMessageHelper');
+const { sendMsg } = require('../helpers/fasterMessageHelper');
 
 router.get('/', async (req, res) => {
   try {
@@ -50,12 +50,12 @@ router.post('/', async (req, res) => {
 
 
 
-      const myMessage = `Votre commande du tracking id: ${newCommande.trackingId.toString()} est enregistrée. Le statut de votre commande est: ${newCommande.status.toString()}`;
+      const myMessage = `Votre commande du tracking id: ${newCommande.trackingId.toString()} est enregistrée.\nLe statut de votre commande est: ${newCommande.status.toString()}`;
       
       console.log(phoneNumber)
       console.log(myMessage)
       // Call the function to send SMS
-      sendSMS(phoneNumber, myMessage); // Customize your SMS message
+      sendMsg(phoneNumber, myMessage); // Customize your SMS message
     }
 
     res.status(201).json(newCommande);
@@ -94,7 +94,7 @@ router.put('/:id', async (req, res) => {
         console.log(`Client Phone => ${phoneNumber}`);
 
         // Call the function to send SMS
-        // sendSMS(phoneNumber, `Your order with tracking id ${updatedCommande.trackingId} : \nOrder status has been  change to ${updatedCommande.status}`); // Customize your SMS message
+        sendMsg(phoneNumber, `Your order with tracking id ${updatedCommande.trackingId} : \nOrder status has been changed to ${updatedCommande.status}`); // Customize your SMS message
       }
     } else {
       console.log('Status was not changed')
