@@ -11,6 +11,7 @@ const transportTypesRoutes = require('./routes/transportTypes');
 const packageTypesRoutes = require('./routes/packageTypes');
 const measureUnitRoutes = require('./routes/measureUnits');
 const countryRoutes = require('./routes/countries');
+const dashboardRoutes = require('./routes/dashboard');
 
 app.use('/auth', authRoutes);
 app.use('/clients', clientsRoutes);
@@ -21,6 +22,7 @@ app.use('/transportTypes', transportTypesRoutes);
 app.use('/packageTypes', packageTypesRoutes);
 app.use('/measureUnits', measureUnitRoutes);
 app.use('/countries', countryRoutes);
+app.use('/dashboard', dashboardRoutes);
 
 app.get('/', (req, res) => {
     res.send('Hello NODE API');

@@ -7,15 +7,18 @@ const pricingSchema = new mongoose.Schema(
             required: true
         },
         typeColis: {
-            type: String,
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'PackageType',
             required: true
         },
         transportType: {
-            type: String,
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'TransportType',
             required: true
         },
         unit: {
-            type: String,
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'MeasureUnit',
             required: true
         },
         description: {

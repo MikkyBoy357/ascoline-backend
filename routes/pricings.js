@@ -5,7 +5,7 @@ const Pricing = require('../models/pricingModel'); // Import the Pricing model
 // GET all pricings
 router.get('/', async (req, res) => {
   try {
-    const pricings = await Pricing.find({});
+    const pricings = await Pricing.find({}).populate('unit transportType typeColis', 'label');
     res.status(200).json(pricings);
   } catch (error) {
     console.error(error.message);

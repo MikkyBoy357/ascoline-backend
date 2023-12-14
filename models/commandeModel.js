@@ -9,11 +9,13 @@ const commandeSchema = new mongoose.Schema(
             required: true
         },
         typeColis: {
-            type: String,
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'PackageType',
             required: true
         },
         transportType: {
-            type: String,
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'TransportType',
             required: true
         },
         client: {
@@ -21,12 +23,18 @@ const commandeSchema = new mongoose.Schema(
             ref: 'Client',
             required: true
         },
+        pricing: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Pricing',
+            required: false,
+        },
         description: {
             type: String,
             required: true
         },
         unit: {
-            type: String,
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'MeasureUnit',
             required: true
         },
         pays: {

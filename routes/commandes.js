@@ -2,12 +2,23 @@ const express = require('express');
 const router = express.Router();
 const Commande = require('../models/commandeModel');
 const Client = require('../models/clientModel');
+const Pricing = require('../models/pricingModel');
 
 const { sendMsg } = require('../helpers/fasterMessageHelper');
 
 router.get('/', async (req, res) => {
   try {
-    const commandes = await Commande.find({}).populate('client', 'lastName firstName email phone address');
+    const commandes = await Commande.find({})
+      .populate('client', 'lastName firstName email phone address')
+      .populate({
+        path: 'pricing',
+        populate: {
+          path: 'typeColis transportType unit',
+          select: 'label description', // select specific fields to populate
+        },
+      })
+      .populate('unit typeColis transportType', '_id label description');
+
     res.status(200).json(commandes);
   } catch (error) {
     console.log(error.message);
@@ -18,7 +29,10 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const commande = await Commande.findById(id).populate('client', 'lastName firstName email phone address');
+    const commande = await Commande.findById(id)
+      .populate('client', 'lastName firstName email phone address')
+      .populate('unit');
+
     if (!commande) {
       return res.status(404).json({ message: `Cannot find any Commande with ID ${id}` });
     }
@@ -31,9 +45,21 @@ router.get('/:id', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const newCommande = await Commande.create(req.body);
+    // get pricing
+    const pricing = await Pricing.findOne({ typeColis: req.body.typeColis, transportType: req.body.transportType, unit: req.body.unit })
 
-    console.log(newCommande.client)
+    const updatedRequestBody = { ...req.body };
+
+    if (pricing) {
+      // Create a copy of req.body and update the copied object
+      updatedRequestBody.pricing = pricing._id;
+
+      // console.log(`==Omo2==> ${updatedRequestBody.pricing}`);
+    } else {
+      return res.status(404).json({ message: `Could NOT find Pricing for specified unit, typeColis and transportType` });
+    }
+
+    const newCommande = await Commande.create(updatedRequestBody);
 
     // Fetch the client information using the client ID from newCommande
     const clientInfo = await Client.findById(newCommande.client);
@@ -51,7 +77,7 @@ router.post('/', async (req, res) => {
 
 
       const myMessage = `Votre commande du tracking id: ${newCommande.trackingId.toString()} est enregistrée.\nLe statut de votre commande est: ${newCommande.status.toString()}`;
-      
+
       console.log(phoneNumber)
       console.log(myMessage)
       // Call the function to send SMS
@@ -84,17 +110,30 @@ router.put('/:id', async (req, res) => {
       return res.status(404).json({ message: `Cannot find any Commande with ID ${id}` });
     }
 
+    // Fetch the client information using the client ID from updatedComande
+    const clientInfo = await Client.findById(updatedCommande.client);
+
+    if (!clientInfo) {
+      return res.status(404).json({ message: `Client with ID ${updatedCommande.client} not found` });
+    }
+
     // Compare the initial status with the updated status
     if (initialStatus !== updatedCommande.status) {
       console.log(`StatusChanges? => from ${initialStatus} to ${updatedCommande.status}`);
       // handle sendSMS
       {
         // Get the phone number from the updatedCommande or pass it as part of the request body
-        const phoneNumber = updatedCommande.client.phone; // Replace with your field name
-        console.log(`Client Phone => ${phoneNumber}`);
+        const phoneNumber = `229${clientInfo.phone.toString()}`; // Replace with your field name
+        console.log(`Client Phone => ${phoneNumber}`)
 
+
+
+        const myMessage = `Votre commande du tracking id: ${updatedCommande.trackingId.toString()} est enregistrée.\nLe statut de votre commande est: ${updatedCommande.status.toString()}`;
+
+        console.log(phoneNumber)
+        console.log(myMessage)
         // Call the function to send SMS
-        sendMsg(phoneNumber, `Your order with tracking id ${updatedCommande.trackingId} : \nOrder status has been changed to ${updatedCommande.status}`); // Customize your SMS message
+        sendMsg(phoneNumber, myMessage); // Customize your SMS message
       }
     } else {
       console.log('Status was not changed')
