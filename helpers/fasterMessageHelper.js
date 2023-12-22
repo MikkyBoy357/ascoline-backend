@@ -12,7 +12,7 @@ module.exports.sendMsg = async (PhoneNumber, Message) => {
     console.log("=====> SendMSG")
     return axiosMsg.get(`/sms/send`, {
         params: {
-            from: 'FASTERMSG',
+            from: 'ascoline',
             to: PhoneNumber,
             text: Message,
         },
