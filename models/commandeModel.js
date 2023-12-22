@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const statusEnum = ['Réceptionné en Chine', 'Commande Arrivée'];
+const statusEnum = ["En attente de confirmation", "Confirmation de réception", "En transit", "Commande arrivée", "Commande livré"];
 
 const commandeSchema = new mongoose.Schema(
     {

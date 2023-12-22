@@ -83,6 +83,7 @@ router.post('/signup', async (req, res) => {
                                 });
                             })
                             .catch(err => {
+                                console.log("Gotcha")
                                 // If there's an error during saving, return a 500 Internal Server Error
                                 console.log(err);
                                 res.status(500).json({
