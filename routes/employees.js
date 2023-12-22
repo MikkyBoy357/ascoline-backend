@@ -3,8 +3,22 @@ const router = express.Router();
 const Employee = require('../models/employeeModel');
 
 router.get('/', async (req, res) => {
+
+    const filter = {};
+    const search = req.query.search;
+
+    if (search) {
+        filter.$or = [
+            { firstName: { $regex: search, $options: "i" } },
+            { lastName: { $regex: search, $options: "i" } },
+            { phone: { $regex: search, $options: "i" } },
+            { email: { $regex: search, $options: "i" } },
+            { address: { $regex: search, $options: "i" } },
+        ];
+    }
+
     try {
-        const employees = await Employee.find({});
+        const employees = await Employee.find(filter);
         res.status(200).json(employees);
     } catch (error) {
         console.log(error.message);

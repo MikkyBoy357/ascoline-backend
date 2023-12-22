@@ -22,7 +22,7 @@ mongoose.connect(mongoUri).then(() => {
     console.log("===========> connected to MongoDB <===========");
     const port = process.env.PORT || 3000;
     server.listen(port, () => {
-        console.log(`Node API app is running on port 3000`);
+        console.log(`Node API app is running on port ${port}`);
     });
 }).catch((error) => {
     console.log(error);

@@ -6,8 +6,20 @@ const mongoose = require("mongoose");
 
 // GET /transportTypes - Get all transport types
 router.get('/', async (req, res) => {
+
+    const filter = {};
+    const search = req.query.search;
+
+    if (search) {
+        filter.$or = [
+            { description: { $regex: search, $options: "i" } },
+            { label: { $regex: search, $options: "i" } },
+        ];
+
+    }
+
     try {
-        const transportTypes = await TransportType.find({});
+        const transportTypes = await TransportType.find(filter);
         res.status(200).json(transportTypes);
     } catch (error) {
         console.error(error.message);

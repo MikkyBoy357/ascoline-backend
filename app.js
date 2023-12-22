@@ -12,6 +12,7 @@ const packageTypesRoutes = require('./routes/packageTypes');
 const measureUnitRoutes = require('./routes/measureUnits');
 const countryRoutes = require('./routes/countries');
 const dashboardRoutes = require('./routes/dashboard');
+const productsRoutes = require('./routes/products');
 
 app.use('/auth', authRoutes);
 app.use('/clients', clientsRoutes);
@@ -23,6 +24,7 @@ app.use('/packageTypes', packageTypesRoutes);
 app.use('/measureUnits', measureUnitRoutes);
 app.use('/countries', countryRoutes);
 app.use('/dashboard', dashboardRoutes);
+app.use('/products', productsRoutes);
 
 app.get('/', (req, res) => {
     res.send('Hello NODE API');

@@ -6,8 +6,20 @@ const mongoose = require("mongoose");
 
 // GET /countries - Get all countries
 router.get('/', async (req, res) => {
+
+    const filter = {};
+    const search = req.query.search;
+
+    if (search) {
+        filter.$or = [
+            { description: { $regex: search, $options: "i" } },
+            { label: { $regex: search, $options: "i" } },
+        ];
+
+    }
+
     try {
-        const countries = await Country.find({});
+        const countries = await Country.find(filter);
         res.status(200).json(countries);
     } catch (error) {
         console.error(error.message);

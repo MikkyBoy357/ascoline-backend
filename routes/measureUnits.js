@@ -6,8 +6,20 @@ const mongoose = require("mongoose");
 
 // GET /measureUnits - Get all measure units
 router.get('/', async (req, res) => {
+
+    const filter = {};
+    const search = req.query.search;
+
+    if (search) {
+        filter.$or = [
+            { description: { $regex: search, $options: "i" } },
+            { label: { $regex: search, $options: "i" } },
+        ];
+
+    }
+
     try {
-        const measureUnits = await MeasureUnit.find({});
+        const measureUnits = await MeasureUnit.find(filter);
         res.status(200).json(measureUnits);
     } catch (error) {
         console.error(error.message);

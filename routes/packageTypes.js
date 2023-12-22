@@ -6,8 +6,20 @@ const mongoose = require("mongoose");
 
 // GET /packageTypes - Get all package types
 router.get('/', async (req, res) => {
+
+    const filter = {};
+    const search = req.query.search;
+
+    if (search) {
+        filter.$or = [
+            { description: { $regex: search, $options: "i" } },
+            { label: { $regex: search, $options: "i" } },
+        ];
+
+    }
+
     try {
-        const packageTypes = await PackageType.find({});
+        const packageTypes = await PackageType.find(filter);
         res.status(200).json(packageTypes);
     } catch (error) {
         console.error(error.message);

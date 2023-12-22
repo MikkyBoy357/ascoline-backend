@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const Pricing = require('../models/pricingModel'); // Import the Pricing model
+const Product = require('../models/productModel');
+const mongoose = require("mongoose"); // Import the Pricing model
 
 // GET all pricings
 router.get('/', async (req, res) => {
@@ -11,20 +12,19 @@ router.get('/', async (req, res) => {
   if (search) {
     filter.$or = [
       { description: { $regex: search, $options: "i" } },
-      { status: { $regex: search, $options: "i" } },
+      { name: { $regex: search, $options: "i" } },
     ];
 
     if (!isNaN(Number(search))) {
 
       filter["$or"].push({ price: { $eq: Number(search) } });
-      filter["$or"].push({ quantity: { $eq: Number(search) } });
     }
 
   }
 
   try {
-    const pricings = await Pricing.find(filter).populate('transportType unit typeColis', 'label');
-    res.status(200).json(pricings);
+    const products = await Product.find(filter);
+    res.status(200).json(products);
   } catch (error) {
     console.error(error.message);
     res.status(500).json({ message: 'Server Error' });
@@ -35,11 +35,11 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const pricing = await Pricing.findById(id);
-    if (!pricing) {
-      return res.status(404).json({ message: `Cannot find any Pricing with ID ${id}` });
+    const product = await Product.findById(id);
+    if (!product) {
+      return res.status(404).json({ message: `Cannot find any Product with ID ${id}` });
     }
-    res.status(200).json(pricing);
+    res.status(200).json(product);
   } catch (error) {
     console.error(error.message);
     res.status(500).json({ message: 'Server Error' });
@@ -48,9 +48,16 @@ router.get('/:id', async (req, res) => {
 
 // Create a new pricing
 router.post('/', async (req, res) => {
+
+  // Generate a new ObjectId for the _id field
+  const newId = new mongoose.Types.ObjectId();
+
+  // Assign the generated _id to req.body
+  req.body._id = newId;
+
   try {
-    const newPricing = await Pricing.create(req.body);
-    res.status(201).json(newPricing);
+    const newProduct = await Product.create(req.body);
+    res.status(201).json(newProduct);
   } catch (error) {
     console.error(error.message);
     res.status(500).json({ message: 'Server Error' });
@@ -61,11 +68,11 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const updatedPricing = await Pricing.findByIdAndUpdate(id, req.body, { new: true });
-    if (!updatedPricing) {
-      return res.status(404).json({ message: `Cannot find any Pricing with ID ${id}` });
+    const updatedProduct = await Product.findByIdAndUpdate(id, req.body, { new: true });
+    if (!updatedProduct) {
+      return res.status(404).json({ message: `Cannot find any Product with ID ${id}` });
     }
-    res.status(200).json(updatedPricing);
+    res.status(200).json(updatedProduct);
   } catch (error) {
     console.error(error.message);
     res.status(500).json({ message: 'Server Error' });
@@ -76,11 +83,11 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const deletedPricing = await Pricing.findByIdAndDelete(id);
-    if (!deletedPricing) {
-      return res.status(404).json({ message: `Cannot find any Pricing with ID ${id}` });
+    const deletedProduct = await Product.findByIdAndDelete(id);
+    if (!deletedProduct) {
+      return res.status(404).json({ message: `Cannot find any Product with ID ${id}` });
     }
-    res.status(200).json(deletedPricing);
+    res.status(200).json(deletedProduct);
   } catch (error) {
     console.error(error.message);
     res.status(500).json({ message: 'Server Error' });

@@ -7,8 +7,23 @@ const Pricing = require('../models/pricingModel');
 const { sendMsg } = require('../helpers/fasterMessageHelper');
 
 router.get('/', async (req, res) => {
+
+  const filter = {};
+  const search = req.query.search;
+
+  if (search) {
+    filter.$or = [
+      { trackingId: { $regex: search, $options: "i" } },
+      { description: { $regex: search, $options: "i" } },
+      { pays: { $regex: search, $options: "i" } },
+      { ville: { $regex: search, $options: "i" } },
+      { status: { $regex: search, $options: "i" } },
+      { specialNote: { $regex: search, $options: "i" } },
+    ];
+  }
+
   try {
-    const commandes = await Commande.find({})
+    const commandes = await Commande.find(filter)
       .populate('client', 'lastName firstName email phone address')
       .populate({
         path: 'pricing',
