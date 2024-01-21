@@ -3,9 +3,10 @@ const router = express.Router();
 const PackageType = require('../models/packageTypeModel');
 
 const mongoose = require("mongoose");
+const {authorizeJwt, verifyAccount} = require("../helpers/verifyAccount");
 
 // GET /packageTypes - Get all package types
-router.get('/', async (req, res) => {
+router.get('/', authorizeJwt, verifyAccount([{name: 'packageType', action: "read"}]), async (req, res) => {
 
     const filter = {};
     const search = req.query.search;
@@ -28,7 +29,7 @@ router.get('/', async (req, res) => {
 });
 
 // GET /packageTypes/:id - Get a specific package type by ID
-router.get('/:id', async (req, res) => {
+router.get('/:id', authorizeJwt, verifyAccount([{name: 'packageType', action: "read"}]), async (req, res) => {
     try {
         const { id } = req.params;
         const packageType = await PackageType.findById(id);
@@ -45,7 +46,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /packageTypes - Create a new package type
-router.post('/', async (req, res) => {
+router.post('/', authorizeJwt, verifyAccount([{name: 'packageType', action: "create"}]), async (req, res) => {
     try {
         // Generate a new ObjectId for the _id field
         const newId = new mongoose.Types.ObjectId();
@@ -62,7 +63,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT /packageTypes/:id - Update a package type by ID
-router.put('/:id', async (req, res) => {
+router.put('/:id', authorizeJwt, verifyAccount([{name: 'packageType', action: "update"}]), async (req, res) => {
     try {
         const { id } = req.params;
         const packageType = await PackageType.findByIdAndUpdate(id, req.body, { new: true });
@@ -79,7 +80,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE /packageTypes/:id - Delete a package type by ID
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', authorizeJwt, verifyAccount([{name: 'packageType', action: "delete"}]), async (req, res) => {
     try {
         const { id } = req.params;
         const packageType = await PackageType.findByIdAndDelete(id);

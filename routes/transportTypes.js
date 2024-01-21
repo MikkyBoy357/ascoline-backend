@@ -3,9 +3,10 @@ const router = express.Router();
 const TransportType = require('../models/transportTypeModel');
 
 const mongoose = require("mongoose");
+const {authorizeJwt, verifyAccount} = require("../helpers/verifyAccount");
 
 // GET /transportTypes - Get all transport types
-router.get('/', async (req, res) => {
+router.get('/', authorizeJwt, verifyAccount([{name: 'transportType', action: "read"}]), async (req, res) => {
 
     const filter = {};
     const search = req.query.search;
@@ -28,7 +29,7 @@ router.get('/', async (req, res) => {
 });
 
 // GET /transportTypes/:id - Get a specific transport type by ID
-router.get('/:id', async (req, res) => {
+router.get('/:id', authorizeJwt, verifyAccount([{name: 'transportType', action: "read"}]),async (req, res) => {
     try {
         const { id } = req.params;
         const transportType = await TransportType.findById(id);
@@ -45,7 +46,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /transportTypes - Create a new transport type
-router.post('/', async (req, res) => {
+router.post('/', authorizeJwt, verifyAccount([{name: 'transportType', action: "create"}]),async (req, res) => {
     try {
         // Generate a new ObjectId for the _id field
         const newId = new mongoose.Types.ObjectId();
@@ -62,7 +63,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT /transportTypes/:id - Update a transport type by ID
-router.put('/:id', async (req, res) => {
+router.put('/:id', authorizeJwt, verifyAccount([{name: 'transportType', action: "update"}]),async (req, res) => {
     try {
         const { id } = req.params;
         const transportType = await TransportType.findByIdAndUpdate(id, req.body, { new: true });
@@ -79,7 +80,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE /transportTypes/:id - Delete a transport type by ID
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', authorizeJwt, verifyAccount([{name: 'transportType', action: "delete"}]),async (req, res) => {
     try {
         const { id } = req.params;
         const transportType = await TransportType.findByIdAndDelete(id);

@@ -45,7 +45,11 @@ const userSchema = mongoose.Schema(
             unique: true,
             match: /[a-z0-9!#$%'*+/=?^_`{|}~-]+(?:\.[a-z09!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?/
         },
-        password: { type: String, required: true }
+        password: { type: String, required: true },
+        permissions: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Permission',
+        }],
     },
     {
         timestamps: true

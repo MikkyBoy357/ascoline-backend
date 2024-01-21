@@ -5,8 +5,9 @@ const Client = require('../models/clientModel');
 const Pricing = require('../models/pricingModel');
 
 const { sendMsg } = require('../helpers/fasterMessageHelper');
+const {authorizeJwt, verifyAccount} = require("../helpers/verifyAccount");
 
-router.get('/', async (req, res) => {
+router.get('/', authorizeJwt, verifyAccount([{name: 'commande', action: "read"}]), async (req, res) => {
 
   const filter = {};
   const search = req.query.search;
@@ -41,7 +42,51 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.get('/:id', async (req, res) => {
+router.get('/my', authorizeJwt, verifyAccount([{name: 'commande', action: "read"}]), async (req, res) => {
+
+  const user = req.user
+  const filter = {};
+  const search = req.query.search;
+
+  if (search) {
+    filter.$or = [
+      { trackingId: { $regex: search, $options: "i" } },
+      { description: { $regex: search, $options: "i" } },
+      { pays: { $regex: search, $options: "i" } },
+      { ville: { $regex: search, $options: "i" } },
+      { status: { $regex: search, $options: "i" } },
+      { specialNote: { $regex: search, $options: "i" } },
+    ];
+  }
+
+  try {
+
+    const client = await Client.findOne({firstName: user.firstName , lastName: user.lastName, phone: user.phone, email: user.email}).exec();
+
+    if (client) {
+      filter.client = client._id;
+    }
+
+    const commandes = await Commande.find(filter)
+        .populate('client', 'lastName firstName email phone address')
+        .populate({
+          path: 'pricing',
+          populate: {
+            path: 'typeColis transportType unit',
+            select: 'label description', // select specific fields to populate
+          },
+        })
+        .populate('unit typeColis transportType', '_id label description');
+
+
+    res.status(200).json(commandes);
+  } catch (error) {
+    console.log(error.message);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.get('/:id', authorizeJwt, verifyAccount([{name: 'commande', action: "read"}]),async (req, res) => {
   try {
     const { id } = req.params;
     const commande = await Commande.findById(id)
@@ -58,7 +103,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', authorizeJwt, verifyAccount([{name: 'commande', action: "create"}]), async (req, res) => {
   try {
     // get pricing
     const pricing = await Pricing.findOne({ typeColis: req.body.typeColis, transportType: req.body.transportType, unit: req.body.unit })
@@ -106,7 +151,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', authorizeJwt, verifyAccount([{name: 'commande', action: "update"}]), async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -161,7 +206,7 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', authorizeJwt, verifyAccount([{name: 'commande', action: "delete"}]), async (req, res) => {
   try {
     const { id } = req.params;
     const deletedCommande = await Commande.findByIdAndDelete(id);

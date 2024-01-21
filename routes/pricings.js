@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const Pricing = require('../models/pricingModel'); // Import the Pricing model
+const Pricing = require('../models/pricingModel');
+const {authorizeJwt, verifyAccount} = require("../helpers/verifyAccount"); // Import the Pricing model
 
 // GET all pricings
-router.get('/', async (req, res) => {
+router.get('/', authorizeJwt, verifyAccount([{name: 'pricing', action: "read"}]),async (req, res) => {
 
   const filter = {};
   const search = req.query.search;
@@ -32,7 +33,7 @@ router.get('/', async (req, res) => {
 });
 
 // GET a pricing by ID
-router.get('/:id', async (req, res) => {
+router.get('/:id', authorizeJwt, verifyAccount([{name: 'pricing', action: "read"}]),async (req, res) => {
   try {
     const { id } = req.params;
     const pricing = await Pricing.findById(id);
@@ -47,7 +48,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create a new pricing
-router.post('/', async (req, res) => {
+router.post('/', authorizeJwt, verifyAccount([{name: 'pricing', action: "create"}]),async (req, res) => {
   try {
     const newPricing = await Pricing.create(req.body);
     res.status(201).json(newPricing);
@@ -58,7 +59,7 @@ router.post('/', async (req, res) => {
 });
 
 // Update a pricing by ID
-router.put('/:id', async (req, res) => {
+router.put('/:id', authorizeJwt, verifyAccount([{name: 'pricing', action: "update"}]),async (req, res) => {
   try {
     const { id } = req.params;
     const updatedPricing = await Pricing.findByIdAndUpdate(id, req.body, { new: true });
@@ -73,7 +74,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // Delete a pricing by ID
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', authorizeJwt, verifyAccount([{name: 'pricing', action: "delete"}]),async (req, res) => {
   try {
     const { id } = req.params;
     const deletedPricing = await Pricing.findByIdAndDelete(id);

@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const Employee = require('../models/employeeModel');
+const {authorizeJwt, verifyAccount} = require("../helpers/verifyAccount");
 
-router.get('/', async (req, res) => {
+router.get('/', authorizeJwt, verifyAccount([{name: 'employee', action: "read"}]), async (req, res) => {
 
     const filter = {};
     const search = req.query.search;
@@ -26,7 +27,7 @@ router.get('/', async (req, res) => {
     }
 });
 
-router.get('/:id', async (req, res) => {
+router.get('/:id', authorizeJwt, verifyAccount([{name: 'employee', action: "read"}]), async (req, res) => {
     try {
         const { id } = req.params;
         const employee = await Employee.findById(id);
@@ -42,7 +43,7 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', authorizeJwt, verifyAccount([{name: 'employee', action: "create"}]), async (req, res) => {
     try {
         const employee = await Employee.create(req.body);
         res.status(201).json(employee);
@@ -52,7 +53,7 @@ router.post('/', async (req, res) => {
     }
 });
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', authorizeJwt, verifyAccount([{name: 'employee', action: "update"}]), async (req, res) => {
     try {
         const { id } = req.params;
         const employee = await Employee.findByIdAndUpdate(id, req.body, { new: true });
@@ -66,7 +67,7 @@ router.put('/:id', async (req, res) => {
     }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', authorizeJwt, verifyAccount([{name: 'employee', action: "delete"}]), async (req, res) => {
     try {
         const { id } = req.params;
         const employee = await Employee.findByIdAndDelete(id);

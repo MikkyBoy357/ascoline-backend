@@ -3,9 +3,10 @@ const router = express.Router();
 const MeasureUnit = require('../models/measureUnitModel');
 
 const mongoose = require("mongoose");
+const {authorizeJwt, verifyAccount} = require("../helpers/verifyAccount");
 
 // GET /measureUnits - Get all measure units
-router.get('/', async (req, res) => {
+router.get('/', authorizeJwt, verifyAccount([{name: 'measureUnit', action: "read"}]), async (req, res) => {
 
     const filter = {};
     const search = req.query.search;
@@ -28,7 +29,7 @@ router.get('/', async (req, res) => {
 });
 
 // GET /measureUnits/:id - Get a specific measure unit by ID
-router.get('/:id', async (req, res) => {
+router.get('/:id', authorizeJwt, verifyAccount([{name: 'measureUnit', action: "read"}]), async (req, res) => {
     try {
         const { id } = req.params;
         const measureUnit = await MeasureUnit.findById(id);
@@ -45,7 +46,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /measureUnits - Create a new measure unit
-router.post('/', async (req, res) => {
+router.post('/', authorizeJwt, verifyAccount([{name: 'measureUnit', action: "create"}]), async (req, res) => {
     try {
         // Generate a new ObjectId for the _id field
         const newId = new mongoose.Types.ObjectId();
@@ -62,7 +63,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT /measureUnits/:id - Update a measure unit by ID
-router.put('/:id', async (req, res) => {
+router.put('/:id', authorizeJwt, verifyAccount([{name: 'measureUnit', action: "update"}]), async (req, res) => {
     try {
         const { id } = req.params;
         const measureUnit = await MeasureUnit.findByIdAndUpdate(id, req.body, { new: true });
@@ -79,7 +80,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE /measureUnits/:id - Delete a measure unit by ID
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', authorizeJwt, verifyAccount([{name: 'measureUnit', action: "delete"}]), async (req, res) => {
     try {
         const { id } = req.params;
         const measureUnit = await MeasureUnit.findByIdAndDelete(id);

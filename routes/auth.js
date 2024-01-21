@@ -46,6 +46,19 @@ router.post('/signup', async (req, res) => {
                         user
                             .save()
                             .then(async result => {
+
+                                const token = jwt.sign(
+                                    {
+                                        email: result.email,
+                                        userId: result._id,
+                                        type: result.type
+                                    },
+                                    process.env.JWT_KEY, // Use environment variable for the secret key
+                                    {
+                                        expiresIn: "5h" // Token expiration time
+                                    }
+                                );
+
                                 // If the user is successfully created, return a 201 Created status code
                                 console.log(result);
 
@@ -78,8 +91,12 @@ router.post('/signup', async (req, res) => {
                                     await newEmployee.save();
                                 }
 
+                                delete result.password;
+
                                 res.status(201).json({
-                                    message: `${req.body.type} User created`
+                                    message: `${req.body.type} User created`,
+                                    token: token,
+                                    user: result
                                 });
                             })
                             .catch(err => {
@@ -98,12 +115,12 @@ router.post('/signup', async (req, res) => {
 
 router.post('/login', async (req, res) => {
     // Check if the email exists in the database
-    User.find({ email: req.body.email })
+    User.find({ email: req.body.email }).populate("permissions")
         .exec()
         .then(user => {
             // If the email doesn't exist, return a 401 Unauthorized status code
             if (user.length < 1) {
-                return res.status(401).json({
+                return res.status(400).json({
                     message: `User with email ${req.body.email} not found`
                 });
             }
@@ -111,7 +128,7 @@ router.post('/login', async (req, res) => {
             bcrypt.compare(req.body.password, user[0].password, (err, result) => {
                 if (err) {
                     // If there's an error during password comparison, return a 401 Unauthorized status code
-                    return res.status(401).json({
+                    return res.status(400).json({
                         message: "Auth failed"
                     });
                 }
@@ -131,6 +148,7 @@ router.post('/login', async (req, res) => {
                     // Return a 200 OK status code with the token for successful authentication
                     delete user[0].password;
 
+
                     return res.status(200).json({
                         message: "Auth successful",
                         token: token,
@@ -139,7 +157,7 @@ router.post('/login', async (req, res) => {
                     });
                 }
                 // If the password doesn't match, return a 401 Unauthorized status code
-                res.status(401).json({
+                res.status(400).json({
                     message: "Incorrect email or password"
                 });
             });
