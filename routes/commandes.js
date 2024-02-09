@@ -141,7 +141,12 @@ router.post('/', authorizeJwt, verifyAccount([{name: 'commande', action: "create
       console.log(phoneNumber)
       console.log(myMessage)
       // Call the function to send SMS
-      sendMsg(phoneNumber, myMessage); // Customize your SMS message
+      sendMsg(phoneNumber, myMessage).then((response) => {
+        console.log("sms envoyé");
+      }).catch((e) => {
+        console.log("une erreur est survenue dans l'envoie du sms");
+        console.log(e);
+      }); // Customize your SMS message
     }
 
     res.status(201).json(newCommande);
@@ -193,7 +198,12 @@ router.put('/:id', authorizeJwt, verifyAccount([{name: 'commande', action: "upda
         console.log(phoneNumber)
         console.log(myMessage)
         // Call the function to send SMS
-        sendMsg(phoneNumber, myMessage); // Customize your SMS message
+        sendMsg(phoneNumber, myMessage).then((response) => {
+          console.log("sms envoyé");
+        }).catch((e) => {
+          console.log("une erreur est survenue dans l'envoie du sms");
+          console.log(e);
+        });  // Customize your SMS message
       }
     } else {
       console.log('Status was not changed')

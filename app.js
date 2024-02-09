@@ -1,5 +1,6 @@
 const express = require("express");
 const app = express();
+const logger = require("morgan");
 
 // Routes
 const authRoutes = require('./routes/auth');
@@ -15,6 +16,8 @@ const dashboardRoutes = require('./routes/dashboard');
 const productsRoutes = require('./routes/products');
 const usersRoutes = require('./routes/users');
 const permissionsRoute = require('./routes/permissions');
+
+app.use(logger('[:date[web]] ":method :url" :status :res[content-length]'));
 
 app.use('/auth', authRoutes);
 app.use('/clients', clientsRoutes);
