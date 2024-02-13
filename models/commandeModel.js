@@ -60,6 +60,12 @@ const commandeSchema = new mongoose.Schema(
                 message: props => `${props.value} is not a valid status!`
             }
         },
+        paymentStatus: {
+            type: String,
+            enum: ["paid", "unpaid"],
+            default: "unpaid",
+            required: true,
+        },
         specialNote: {
             type: String,
             required: true

@@ -6,6 +6,11 @@ const Pricing = require('../models/pricingModel');
 
 const { sendMsg } = require('../helpers/fasterMessageHelper');
 const {authorizeJwt, verifyAccount} = require("../helpers/verifyAccount");
+const mongoose = require("mongoose");
+const Product = require("../models/productModel");
+const Transaction = require("../models/transactionModel");
+const qosService = require("../helpers/qosHelper");
+const cron = require("node-cron");
 
 router.get('/', authorizeJwt, verifyAccount([{name: 'commande', action: "read"}]), async (req, res) => {
 
@@ -229,5 +234,136 @@ router.delete('/:id', authorizeJwt, verifyAccount([{name: 'commande', action: "d
     res.status(500).json({ message: error.message });
   }
 });
+
+router.post('/pay', authorizeJwt, verifyAccount([{name: 'commande', action: "create"}]),async (req, res) => {
+
+  const user = req.user;
+  let {amount, network, phoneNumber, orderId} = req.body
+  let transactionResponse;
+  const newTransactionId = new mongoose.Types.ObjectId();
+  let transaction;
+
+  try {
+
+    if (!amount || !network || !phoneNumber || !orderId) return res.status(404).json({message: "Les données ne sont pas correctes"});
+
+    const client = await Client.findOne({firstName: user.firstName , lastName: user.lastName, phone: user.phone, email: user.email}).exec();
+
+    const order = await Commande.findOne({_id: orderId}).exec();
+
+    if (!client) return res.status(404).json({message: "Le client n'existe pas"});
+
+    if (!order) return res.status(404).json({message: "La commande n'existe pas"});
+
+
+
+    if (!client._id.equals(order.client)) return res.status(404).json({message: "La commande n'existe pas pour ce client"});
+
+    if (order.paymentStatus === "paid") return res.status(404).json({message: "La commande a déja été payé par mobile money"});
+
+
+     transaction = await Transaction.findOne({item: order}).exec();
+
+
+    amount = Number(amount);
+    network = network.toUpperCase();
+
+    if (transaction) {
+      if (transaction.status === "success") return res.status(404).json({message: "La commande a déja une transaction réussie"});
+    } else {
+      transaction = await Transaction.create({
+        _id: newTransactionId,
+        name: `Achat de ${order.trackingId}`,
+        amount: amount,
+        status: "pending",
+        step: "1",
+        transactionType: "order",
+        client: client,
+        transactionPhone: {
+          network: network,
+          value: phoneNumber,
+        },
+        item: order
+      });
+    }
+
+    const qosResponse = await qosService.makePayment(
+        process.env.NODE_ENV === "development" ? "22967662166" : phoneNumber,
+        process.env.NODE_ENV === "development" ? 1 : amount,
+        network,
+    );
+
+    const processPayment = async () => {
+      let qosTransactionResponse = await qosService.getTransactionStatus(
+          qosResponse.data.transref,
+          network,
+      );
+
+      transactionResponse = qosTransactionResponse.data;
+
+      console.log(qosTransactionResponse.data.responsemsg);
+
+      if (qosTransactionResponse.data.responsemsg !== "PENDING") {
+        task.stop();
+        switch (qosTransactionResponse.data.responsemsg) {
+          case "SUCCESS":
+          case "SUCCESSFUL":
+
+            order.paymentStatus = "paid";
+            transaction.status = "success";
+            transaction.step = "2";
+
+            await order.save();
+            await transaction.save();
+
+            return res.status(200).json({
+              message: `Le paiement de la commande ${order.trackingId} a reussi`,
+            });
+          case "FAILED":
+            transaction.status = "failed";
+            await transaction.save();
+
+            return res.status(400).json({
+              message: "Le paiement a échoué",
+            });
+          default:
+
+            transaction.status = "failed";
+            await transaction.save();
+
+            return res.status(400).json({
+              message: "Le paiement a échoué",
+            });
+        }
+      }
+    };
+
+    const task = cron.schedule("*/15 * * * * *", processPayment);
+
+    setTimeout(async () => {
+      if (transactionResponse.responsemsg === "PENDING") {
+        task.stop();
+
+        transaction.status = "failed";
+        await transaction.save();
+
+        return res.status(400).json({
+          message: "Le paiement a pris trop de temps",
+        });
+      }
+    }, 60000);
+
+
+
+  } catch (error) {
+
+      transaction.status = "failed";
+      await transaction.save();
+
+    console.error(error.message);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
 
 module.exports = router;
