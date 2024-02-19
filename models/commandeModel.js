@@ -64,7 +64,6 @@ const commandeSchema = new mongoose.Schema(
             type: String,
             enum: ["paid", "unpaid"],
             default: "unpaid",
-            required: true,
         },
         specialNote: {
             type: String,

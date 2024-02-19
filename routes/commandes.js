@@ -11,6 +11,7 @@ const Product = require("../models/productModel");
 const Transaction = require("../models/transactionModel");
 const qosService = require("../helpers/qosHelper");
 const cron = require("node-cron");
+const {makeid, generateReference} = require("../helpers/constants");
 
 router.get('/', authorizeJwt, verifyAccount([{name: 'commande', action: "read"}]), async (req, res) => {
 
@@ -121,7 +122,7 @@ router.post('/', authorizeJwt, verifyAccount([{name: 'commande', action: "create
 
       // console.log(`==Omo2==> ${updatedRequestBody.pricing}`);
     } else {
-      return res.status(404).json({ message: `Could NOT find Pricing for specified unit, typeColis and transportType` });
+      return res.status(404).json({ message: `Aucun tarif trouvé pour ce type de colis, ce type de transport et cette unité` });
     }
 
     const newCommande = await Commande.create(updatedRequestBody);
@@ -262,7 +263,7 @@ router.post('/pay', authorizeJwt, verifyAccount([{name: 'commande', action: "cre
     if (order.paymentStatus === "paid") return res.status(404).json({message: "La commande a déja été payé par mobile money"});
 
 
-     transaction = await Transaction.findOne({item: order}).exec();
+     transaction = await Transaction.findOne({item: orderId}).exec();
 
 
     amount = Number(amount);
@@ -273,7 +274,8 @@ router.post('/pay', authorizeJwt, verifyAccount([{name: 'commande', action: "cre
     } else {
       transaction = await Transaction.create({
         _id: newTransactionId,
-        name: `Achat de ${order.trackingId}`,
+        reference: generateReference(newTransactionId.toString(), 10),
+        name: `Paiement de ${order.trackingId}`,
         amount: amount,
         status: "pending",
         step: "1",
@@ -357,8 +359,10 @@ router.post('/pay', authorizeJwt, verifyAccount([{name: 'commande', action: "cre
 
   } catch (error) {
 
-      transaction.status = "failed";
-      await transaction.save();
+      if (transaction) {
+        transaction.status = "failed";
+        await transaction.save();
+      }
 
     console.error(error.message);
     res.status(500).json({ message: 'Server Error' });

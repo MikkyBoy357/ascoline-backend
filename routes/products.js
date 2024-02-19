@@ -7,6 +7,7 @@ const {authorizeJwt, verifyAccount} = require("../helpers/verifyAccount");
 const Client = require("../models/clientModel"); // Import the Pricing model
 const qosService = require("../helpers/qosHelper");
 const cron = require("node-cron");
+const {generateReference} = require("../helpers/constants");
 
 // GET all products
 router.get('/', authorizeJwt, verifyAccount([{name: 'product', action: "read"}]), async (req, res) => {
@@ -126,6 +127,7 @@ router.post('/pay', authorizeJwt, verifyAccount([{name: 'product', action: "crea
 
     const newTransaction = await Transaction.create({
       _id: newTransactionId,
+      reference: generateReference(newTransactionId.toString(), 10),
       name: `Achat de ${product.name}`,
       amount: amount,
       status: "pending",

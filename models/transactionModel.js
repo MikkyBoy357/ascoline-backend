@@ -1,10 +1,14 @@
 const mongoose = require('mongoose');
 
-const statusEnum = ["En attente de confirmation", "Confirmation de réception", "En transit", "Commande arrivée", "Commande livré"];
 
 const transactionSchema = new mongoose.Schema(
     {
         _id: mongoose.Schema.Types.ObjectId,
+        reference: {
+            type: String,
+            required: true,
+            unique: true,
+        },
         name: {
             type: String,
             required: true

@@ -1,5 +1,5 @@
 const crypto = require("crypto");
-module.exports.validPermissionNames = ['user', 'permission', 'employee', 'client', 'commande', 'country', 'measureUnit', 'packageType', 'pricing', 'product', 'transportType'];
+module.exports.validPermissionNames = ['user', 'permission', 'employee', 'client', 'commande', 'country', 'measureUnit', 'packageType', 'pricing', 'product', 'transportType', 'transaction'];
 
 module.exports.makeid = (length) => {
     var result = "";
@@ -12,8 +12,8 @@ module.exports.makeid = (length) => {
     return result;
 };
 
-module.exports.generateReference = (data) => {
+module.exports.generateReference = (data, length = 10) => {
     const hash = crypto.createHash("sha256");
     hash.update(data);
-    return hash.digest("hex").toUpperCase().substring(0, 10);
+    return hash.digest("hex").toUpperCase().substring(0, length);
 };

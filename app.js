@@ -16,6 +16,8 @@ const dashboardRoutes = require('./routes/dashboard');
 const productsRoutes = require('./routes/products');
 const usersRoutes = require('./routes/users');
 const permissionsRoute = require('./routes/permissions');
+const transactionsRoute = require('./routes/transactions');
+const {makeid} = require("./helpers/constants");
 
 app.use(logger('[:date[web]] ":method :url" :status :res[content-length]'));
 
@@ -32,6 +34,8 @@ app.use('/dashboard', dashboardRoutes);
 app.use('/products', productsRoutes);
 app.use('/permissions', permissionsRoute);
 app.use('/users', usersRoutes)
+app.use('/transactions', transactionsRoute)
+
 
 app.get('/', (req, res) => {
     res.send('Hello NODE API');
