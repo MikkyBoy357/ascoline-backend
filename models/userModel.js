@@ -19,6 +19,7 @@ const userSchema = mongoose.Schema(
         },
         phone: {
             type: String,
+            unique: true,
             required: function () {
                 return this.type !== 'admin';
             }

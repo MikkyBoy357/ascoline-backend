@@ -1,9 +1,7 @@
-const { formidable } = require("formidable");
 const express = require("express");
 const router = express.Router();
-const Commande = require("../models/commandeModel");
+const ProductOrder = require("../models/productOrderModel");
 const Client = require("../models/clientModel");
-const Pricing = require("../models/pricingModel");
 const { sendMsg } = require("../helpers/fasterMessageHelper");
 const { authorizeJwt, verifyAccount } = require("../helpers/verifyAccount");
 const mongoose = require("mongoose");
@@ -16,8 +14,7 @@ const {
   extractAndCheckLength,
 } = require("../helpers/constants");
 const moment = require("moment");
-const { uploadFileAWS, deleteFileAWS } = require("../helpers/awsMiddleware");
-const fs = require("fs");
+const Product = require("../models/productModel");
 
 router.get(
   "/",
@@ -25,30 +22,26 @@ router.get(
   verifyAccount([{ name: "commande", action: "read" }]),
   async (req, res) => {
     let count;
-    const filter = {};
     const page = parseInt(req.query.page ?? "1");
     const limit = parseInt(req.query.limit ?? "15");
 
+    const filter = {};
     const search = req.query.search;
     const status = req.query.status && req.query.status.split(",");
     const clients = req.query.clients && req.query.clients.split(",");
-    const packages = req.query.packages && req.query.packages.split(",");
-    const transports = req.query.transports && req.query.transports.split(",");
+    const products = req.query.products && req.query.products.split(",");
     const startDate = req.query.startDate;
     const endDate = req.query.endDate;
 
     if (search) {
       filter.$or = [
-        { trackingId: { $regex: search, $options: "i" } },
-        { description: { $regex: search, $options: "i" } },
-        { pays: { $regex: search, $options: "i" } },
-        { ville: { $regex: search, $options: "i" } },
+        { reference: { $regex: search, $options: "i" } },
         { status: { $regex: search, $options: "i" } },
         { specialNote: { $regex: search, $options: "i" } },
       ];
     }
 
-    if (status || clients || packages || transports || (startDate && endDate)) {
+    if (status || clients || (startDate && endDate) || products) {
       filter.$and = [];
 
       if (status)
@@ -63,16 +56,11 @@ router.get(
             $in: clients,
           },
         });
-      if (packages)
+
+      if (products)
         filter.$and.push({
-          typeColis: {
-            $in: packages,
-          },
-        });
-      if (transports)
-        filter.$and.push({
-          transportType: {
-            $in: transports,
+          product: {
+            $in: products,
           },
         });
 
@@ -87,23 +75,15 @@ router.get(
     }
 
     try {
-      const commandes = await Commande.find(filter)
+      count = await ProductOrder.countDocuments(filter);
+      const productOrders = await ProductOrder.find(filter)
         .populate("client", "lastName firstName email phone address")
-        .populate({
-          path: "pricing",
-          populate: {
-            path: "typeColis transportType unit",
-            select: "label description", // select specific fields to populate
-          },
-        })
-        .populate("unit typeColis transportType", "_id label description")
+        .populate("product")
         .limit(limit)
         .skip((page - 1) * limit);
 
-      count = await Commande.countDocuments(filter);
-
       res.status(200).json({
-        orders: commandes,
+        productOrders,
         currentPage: page,
         limit: limit,
         totalPages: Math.ceil(count / limit),
@@ -127,10 +107,7 @@ router.get(
 
     if (search) {
       filter.$or = [
-        { trackingId: { $regex: search, $options: "i" } },
-        { description: { $regex: search, $options: "i" } },
-        { pays: { $regex: search, $options: "i" } },
-        { ville: { $regex: search, $options: "i" } },
+        { reference: { $regex: search, $options: "i" } },
         { status: { $regex: search, $options: "i" } },
         { specialNote: { $regex: search, $options: "i" } },
       ];
@@ -148,18 +125,11 @@ router.get(
         filter.client = client._id;
       }
 
-      const commandes = await Commande.find(filter)
+      const productOrders = await ProductOrder.find(filter)
         .populate("client", "lastName firstName email phone address")
-        .populate({
-          path: "pricing",
-          populate: {
-            path: "typeColis transportType unit",
-            select: "label description", // select specific fields to populate
-          },
-        })
-        .populate("unit typeColis transportType", "_id label description");
+        .populate("product");
 
-      res.status(200).json(commandes);
+      res.status(200).json(productOrders);
     } catch (error) {
       console.log(error.message);
       res.status(500).json({ message: error.message });
@@ -174,16 +144,17 @@ router.get(
   async (req, res) => {
     try {
       const { id } = req.params;
-      const commande = await Commande.findById(id)
-        .populate("client", "lastName firstName email phone address")
-        .populate("unit");
+      const productOrder = await ProductOrder.findById(id).populate(
+        "client",
+        "lastName firstName email phone address",
+      );
 
-      if (!commande) {
+      if (!productOrder) {
         return res
           .status(404)
           .json({ message: `Cannot find any Commande with ID ${id}` });
       }
-      res.status(200).json(commande);
+      res.status(200).json(productOrder);
     } catch (error) {
       console.log(error.message);
       res.status(500).json({ message: error.message });
@@ -197,35 +168,35 @@ router.post(
   verifyAccount([{ name: "commande", action: "create" }]),
   async (req, res) => {
     try {
-      // get pricing
-      const pricing = await Pricing.findOne({
-        typeColis: req.body.typeColis,
-        transportType: req.body.transportType,
-        unit: req.body.unit,
-      });
+      const updatedRequestBody = {
+        ...req.body,
+        reference: generateReference(Date.now().toString(), 10),
+      };
 
-      const updatedRequestBody = { ...req.body };
+      const product = await Product.findOne({
+        _id: updatedRequestBody.product,
+      }).exec();
 
-      if (pricing) {
-        // Create a copy of req.body and update the copied object
-        updatedRequestBody.pricing = pricing._id;
+      if (!product)
+        return res.status(404).json({ message: "Le produit n'existe pas" });
 
-        // console.log(`==Omo2==> ${updatedRequestBody.pricing}`);
-      } else {
-        return res.status(404).json({
-          message: `Aucun tarif trouvé pour ce type de colis, ce type de transport et cette unité`,
-        });
-      }
-
-      const newCommande = await Commande.create(updatedRequestBody);
-
-      // Fetch the client information using the client ID from newCommande
-      const clientInfo = await Client.findById(newCommande.client);
-
-      if (!clientInfo) {
+      if (
+        product.quantity == 0 ||
+        updatedRequestBody.quantity > Number(product.quantity)
+      )
         return res
           .status(404)
-          .json({ message: `Client with ID ${newCommande.client} not found` });
+          .json({ message: "La quantité du produit n'est pas suffisante" });
+
+      const newProductOrder = await ProductOrder.create(updatedRequestBody);
+
+      // Fetch the client information using the client ID from newCommande
+      const clientInfo = await Client.findById(newProductOrder.client);
+
+      if (!clientInfo) {
+        return res.status(404).json({
+          message: `Client with ID ${newProductOrder.client} not found`,
+        });
       }
 
       // handle sendSMS
@@ -234,7 +205,7 @@ router.post(
         const phoneNumber = `${clientInfo.phone.toString()}`; // Replace with your field name
         console.log(`Client Phone => ${phoneNumber}`);
 
-        const myMessage = `Votre commande du tracking id: ${newCommande.trackingId.toString()} est enregistrée.\nLe statut de votre commande est: ${newCommande.status.toString()}`;
+        const myMessage = `Votre commande du reference: ${newProductOrder.reference.toString()} est enregistrée.\nLe statut de votre commande est: ${newProductOrder.status.toString()}`;
 
         console.log(phoneNumber);
         console.log(myMessage);
@@ -253,7 +224,11 @@ router.post(
         }
       }
 
-      res.status(201).json(newCommande);
+      product.quantity = product.quantity - updatedRequestBody.quantity;
+
+      await product.save();
+
+      res.status(201).json(newProductOrder);
     } catch (error) {
       console.log(error.message);
       res.status(500).json({ message: error.message });
@@ -266,46 +241,52 @@ router.put(
   authorizeJwt,
   verifyAccount([{ name: "commande", action: "update" }]),
   async (req, res) => {
+    console.log("okokokkok");
     try {
       const { id } = req.params;
 
       console.log(req.body);
 
       // Fetch the initial Commande from the database
-      const initialCommande = await Commande.findById(id).populate("client");
-      if (!initialCommande) {
+      const initialProductOrder =
+        await ProductOrder.findById(id).populate("client");
+      if (!initialProductOrder) {
         return res
           .status(404)
           .json({ message: `Cannot find any Commande with ID ${id}` });
       }
 
       // Store the initial status
-      const initialStatus = initialCommande.status;
+      const initialStatus = initialProductOrder.status;
 
       // Update the Commande and get the updated version
-      const updatedCommande = await Commande.findByIdAndUpdate(id, req.body, {
-        new: true,
-        runValidators: true,
-      }).populate("client");
-      if (!updatedCommande) {
+      const updatedProductOrder = await ProductOrder.findByIdAndUpdate(
+        id,
+        req.body,
+        {
+          new: true,
+          runValidators: true,
+        },
+      ).populate("client");
+      if (!updatedProductOrder) {
         return res
           .status(404)
           .json({ message: `Cannot find any Commande with ID ${id}` });
       }
 
       // Fetch the client information using the client ID from updatedComande
-      const clientInfo = await Client.findById(updatedCommande.client);
+      const clientInfo = await Client.findById(updatedProductOrder.client);
 
       if (!clientInfo) {
         return res.status(404).json({
-          message: `Client with ID ${updatedCommande.client} not found`,
+          message: `Client with ID ${updatedProductOrder.client} not found`,
         });
       }
 
       // Compare the initial status with the updated status
-      if (initialStatus !== updatedCommande.status) {
+      if (initialStatus !== updatedProductOrder.status) {
         console.log(
-          `StatusChanges? => from ${initialStatus} to ${updatedCommande.status}`,
+          `StatusChanges? => from ${initialStatus} to ${updatedProductOrder.status}`,
         );
         // handle sendSMS
         {
@@ -313,7 +294,7 @@ router.put(
           const phoneNumber = `${clientInfo.phone.toString()}`; // Replace with your field name
           console.log(`Client Phone => ${phoneNumber}`);
 
-          const myMessage = `Votre commande du tracking id: ${updatedCommande.trackingId.toString()} est enregistrée.\nLe statut de votre commande est: ${updatedCommande.status.toString()}`;
+          const myMessage = `Votre commande du tracking id: ${updatedProductOrder.reference.toString()} est enregistrée.\nLe statut de votre commande est: ${updatedProductOrder.status.toString()}`;
 
           console.log(phoneNumber);
           console.log(myMessage);
@@ -335,7 +316,7 @@ router.put(
         console.log("Status was not changed");
       }
 
-      res.status(200).json(updatedCommande);
+      res.status(200).json(updatedProductOrder);
     } catch (error) {
       console.log(error.message);
       res.status(500).json({ message: error.message });
@@ -355,13 +336,13 @@ router.delete(
         item: id,
       });
 
-      const deletedCommande = await Commande.findByIdAndDelete(id);
-      if (!deletedCommande) {
+      const deletedOrderProduct = await ProductOrder.findByIdAndDelete(id);
+      if (!deletedOrderProduct) {
         return res
           .status(404)
           .json({ message: `Cannot find any Commande with ID ${id}` });
       }
-      res.status(200).json(deletedCommande);
+      res.status(200).json(deletedOrderProduct);
     } catch (error) {
       console.log(error.message);
       res.status(500).json({ message: error.message });
@@ -375,13 +356,13 @@ router.post(
   verifyAccount([{ name: "commande", action: "create" }]),
   async (req, res) => {
     const user = req.user;
-    let { amount, network, phoneNumber, orderId } = req.body;
+    let { amount, network, phoneNumber, productOrderId } = req.body;
     let transactionResponse;
     const newTransactionId = new mongoose.Types.ObjectId();
     let transaction;
 
     try {
-      if (!amount || !network || !phoneNumber || !orderId)
+      if (!amount || !network || !phoneNumber || !productOrderId)
         return res
           .status(404)
           .json({ message: "Les données ne sont pas correctes" });
@@ -393,25 +374,27 @@ router.post(
         email: user.email,
       }).exec();
 
-      const order = await Commande.findOne({ _id: orderId }).exec();
+      const productOrder = await ProductOrder.findOne({
+        _id: productOrderId,
+      }).exec();
 
       if (!client)
         return res.status(404).json({ message: "Le client n'existe pas" });
 
-      if (!order)
+      if (!productOrder)
         return res.status(404).json({ message: "La commande n'existe pas" });
 
-      if (!client._id.equals(order.client))
+      if (!client._id.equals(productOrder.client))
         return res
           .status(404)
           .json({ message: "La commande n'existe pas pour ce client" });
 
-      if (order.paymentStatus === "paid")
+      if (productOrder.paymentStatus === "paid")
         return res
           .status(404)
           .json({ message: "La commande a déja été payé par mobile money" });
 
-      transaction = await Transaction.findOne({ item: orderId }).exec();
+      transaction = await Transaction.findOne({ item: productOrderId }).exec();
 
       amount = Number(amount);
       network = network.toUpperCase();
@@ -425,17 +408,17 @@ router.post(
         transaction = await Transaction.create({
           _id: newTransactionId,
           reference: generateReference(newTransactionId.toString(), 10),
-          name: `Paiement du colis ${order.trackingId}`,
+          name: `Paiement du produit ${productOrder.reference}`,
           amount: amount,
           status: "pending",
           step: "1",
-          transactionType: "order",
+          transactionType: "product",
           client: client,
           transactionPhone: {
             network: network,
             value: phoneNumber,
           },
-          item: order,
+          item: productOrder,
         });
       }
 
@@ -460,15 +443,15 @@ router.post(
           switch (qosTransactionResponse.data.responsemsg) {
             case "SUCCESS":
             case "SUCCESSFUL":
-              order.paymentStatus = "paid";
+              productOrder.paymentStatus = "paid";
               transaction.status = "success";
               transaction.step = "2";
 
-              await order.save();
+              await productOrder.save();
               await transaction.save();
 
               return res.status(200).json({
-                message: `Le paiement de la commande ${order.trackingId} a reussi`,
+                message: `Le paiement de la commande ${productOrder.reference} a reussi`,
               });
             case "FAILED":
               transaction.status = "failed";
@@ -513,99 +496,4 @@ router.post(
     }
   },
 );
-
-router.post(
-  "/:id/add-files",
-  authorizeJwt,
-  verifyAccount([{ name: "commande", action: "update" }]),
-  async (req, res) => {
-    const { id } = req.params;
-    let fields;
-    let files;
-
-    let options = {
-      maxFileSize: 100 * 1024 * 1024, //100 MBs converted to bytes,
-      allowEmptyFiles: false,
-    };
-
-    const form = formidable(options);
-    try {
-      // Fetch the initial Commande from the database
-      const initialCommande = await Commande.findById(id);
-      if (!initialCommande) {
-        return res
-          .status(404)
-          .json({ message: `La commande avec l'id ${id} est introuvable` });
-      }
-
-      [fields, files] = await form.parse(req);
-
-      if (!files.images)
-        return res
-          .status(400)
-          .json({ message: `Veuillez vérifier le champs images` });
-
-      const aws = await uploadFileAWS(files.images, id);
-
-      const filesLink = aws.map((item) => {
-        return item[1].Location;
-      });
-
-      initialCommande.images = initialCommande.images.concat(filesLink);
-      await initialCommande.save();
-
-      res.status(200).json("good upload");
-    } catch (error) {
-      console.log(error.message);
-      res.status(500).json({ message: error.message });
-    }
-  },
-);
-
-router.post(
-  "/:id/remove-files",
-  authorizeJwt,
-  verifyAccount([{ name: "commande", action: "update" }]),
-  async (req, res) => {
-    const { id } = req.params;
-    const { images } = req.body;
-
-    try {
-      // Fetch the initial Commande from the database
-      const initialCommande = await Commande.findById(id);
-      if (!initialCommande) {
-        return res
-          .status(404)
-          .json({ message: `La commande avec l'id ${id} est introuvable` });
-      }
-
-      if (!images)
-        return res
-          .status(400)
-          .json({ message: `Veuillez vérifier le champs images` });
-
-      if (
-        !images.every((img) => {
-          return initialCommande.images.includes(img);
-        })
-      )
-        return res.status(400).json({
-          message: `Le ou les fichiers n'existent pas dans la commande`,
-        });
-
-      await deleteFileAWS(images);
-
-      initialCommande.images = initialCommande.images.filter(
-        (item) => !images.includes(item),
-      );
-      await initialCommande.save();
-
-      res.status(200).json("good upload");
-    } catch (error) {
-      console.log(error.message);
-      res.status(500).json({ message: error.message });
-    }
-  },
-);
-
 module.exports = router;
